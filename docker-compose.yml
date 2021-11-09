@@ -1,0 +1,78 @@
+version: '2.0'
+
+networks:
+  mumble-net:
+
+services:
+  mumble-server:
+    image: vimagick/murmur
+    restart: unless-stopped
+    hostname: mumble-server
+    ports:
+      - 64738:64738/tcp
+      - 64738:64738/udp
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./mumble-server-data:/srv/mumble
+      - ./mumble-server/murmur.ini:/etc/murmur/murmur.ini
+      - ./letsencrypt/conf/:/etc/letsencrypt
+    networks:
+      mumble-net:
+        aliases:
+          - mumble-server
+    environment:
+      - LE_HOOK="echo 1" #start-stop-daemon --quiet --oknodo --stop --signal 10 --pidfile /var/run/mumble-server/mumble-server.pid
+  mumble-web:
+    image: rankenstein/mumble-web
+    hostname: mumble-web
+    restart: unless-stopped
+    depends_on:
+      - mumble-server
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./mumble-web/config.local.js:/home/node/app/config.local.js
+      - ./mumble-web/config.local.js:/home/node/dist/config.local.js
+    environment:
+      - MUMBLE_SERVER=mumble-server:64738
+    networks:
+      mumble-net:
+        aliases:
+          - mumble-web
+  nginx-webserver:
+    build: ./nginx
+    restart: always
+    depends_on:
+      - mumble-web
+    environment:
+      - PROXY_SERVICE=mumble-web:8080
+      - SERVER_NAME=${SERVER_NAME}
+      - CERTIFICATE_DIRECTORY=${CERTIFICATE_DIRECTORY}
+      - LE_RENEW_HOOK=docker exec @CONTAINER_NAME@ nginx -s reload
+    volumes:
+      - ./letsencrypt/conf:/etc/letsencrypt
+      - ./letsencrypt/html:/tmp/letsencrypt
+      - ./nginx/dhparams.pem:/etc/secrets/dhparam
+    ports:
+      - 443:443
+      - 80:80
+    networks:
+      - mumble-net
+  letsencrypt:
+    restart: always
+    image: vdhpieter/letsencrypt-webroot
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./letsencrypt/conf:/etc/letsencrypt
+      - ./letsencrypt/html:/tmp/letsencrypt
+      - /var/run/docker.sock:/var/run/docker.sock
+    links:
+      - nginx-webserver
+      - mumble-server
+    environment:
+      - DOMAINS=${EXTERNAL_HOST_NAME}
+      - EMAIL=${LETSENCRYPT_EMAIL}
+      - WEBROOT_PATH=/tmp/letsencrypt
+      - EXP_LIMIT=30
+      - CHECK_FREQ=1
+      - CHICKENEGG=1
+      - STAGING=${LETSENCRYPT_STAGING}
