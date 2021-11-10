@@ -1,4 +1,4 @@
-!/bin/bash
+#!env bash
 set -euo pipefail
 
 # install Docker
