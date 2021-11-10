@@ -19,6 +19,8 @@ if [ ! -f /usr/local/bin/docker-compose ]; then
   sudo chmod +x /usr/local/bin/docker-compose
 fi
 
+source .env
+
 if [ ! -d letsencrypt ]; then
   mkdir -p letsencrypt/{conf,html}
   # to be able to store the initially created self signed certificate
