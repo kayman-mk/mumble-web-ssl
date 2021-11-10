@@ -45,7 +45,7 @@ services:
       - mumble-web
     environment:
       - PROXY_SERVICE=mumble-web:8080
-      - SERVER_NAME=${SERVER_NAME}
+      - SERVER_NAME=${EXTERNAL_HOST_NAME}
       - CERTIFICATE_DIRECTORY=${CERTIFICATE_DIRECTORY}
       - LE_RENEW_HOOK=docker exec @CONTAINER_NAME@ nginx -s reload
     volumes:
