@@ -1,4 +1,4 @@
-FROM nginx:1.21.3
+FROM nginx:1.25.3
 
 # add configuration
 ADD nginx.conf /etc/nginx/
